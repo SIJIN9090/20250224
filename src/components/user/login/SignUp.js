@@ -4,8 +4,9 @@ import {
   idDuplicateCheck,
   nicknameDuplicateCheck,
   sendVerificationCode,
-} from "./api";
+} from "./mail";
 import logo_b from "./imgs/logo_b.png";
+import { sendVerificationEmail } from "./mail"; // 수정된 import
 
 function SignUp() {
   const [id, setId] = useState("");
@@ -26,8 +27,26 @@ function SignUp() {
   const [isVerified, setIsVerified] = useState(false);
 
   const [forms, setForms] = useState([
-    { id: Date.now(), petName: "", species: "", age: "", weight: "" },
+    { id: Date.now(), petName: "", species: "", age: "" },
   ]);
+
+  const handleVerification = async () => {
+    if (!isIdAvailable) {
+      setIdError("이메일 중복 확인을 먼저 진행해주세요.");
+      return;
+    }
+    if (!id) {
+      setIdError("이메일을 입력해주세요.");
+      return;
+    }
+
+    try {
+      await sendVerificationEmail(id); // 인증 코드 전송
+      alert("인증 코드가 이메일로 전송되었습니다.");
+    } catch (error) {
+      setIdError("인증 코드 전송에 실패했습니다.");
+    }
+  };
 
   const handleIdChange = (e) => {
     const idValue = e.target.value;
@@ -41,8 +60,9 @@ function SignUp() {
     } else {
       setIdError(""); // 유효한 이메일 형식이면 오류 메시지 제거
     }
-    setIsIdAvailable(false); // 이메일 확인 버튼을 클릭하기 전에 이메일을 재검토
+    setIsIdAvailable(false); // 이메일 확인 버튼을 클릭하기 전 이메일을 재검토
   };
+
   const handleNicknameChange = (e) => {
     setNickname(e.target.value);
     setNicknameError("");
@@ -69,15 +89,14 @@ function SignUp() {
       setConfirmError(""); // 비밀번호가 일치하면 오류 메시지 제거
     }
   };
+
   const handleIdCheck = async () => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!id) {
       setIdError("이메일을 입력해주세요.");
-      return;
     }
     if (!emailRegex.test(id)) {
       setIdError("올바른 이메일 형식이 아닙니다.");
-      return;
     }
 
     try {
@@ -114,19 +133,6 @@ function SignUp() {
     }
   };
 
-  const handleVerification = async () => {
-    if (!isIdAvailable) {
-      setIdError("이메일 중복 확인을 먼저 진행해주세요.");
-      return;
-    }
-
-    try {
-      await sendVerificationCode(id);
-      alert("인증 코드가 이메일로 전송되었습니다.");
-    } catch (error) {
-      setIdError("인증 코드 전송에 실패했습니다.");
-    }
-  };
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -167,7 +173,6 @@ function SignUp() {
       forms.map((form) => (form.id === id ? { ...form, [field]: value } : form))
     );
   };
-
   return (
     <SignupContainer>
       <SignupSection>
@@ -371,16 +376,7 @@ function SignUp() {
                   />
                 </td>
               </tr>
-              <tr>
-                <td>
-                  <input
-                    type="text"
-                    placeholder="동물무게"
-                    value={form.weight}
-                    onChange={(e) => handlePetInfoChange(e, form.id, "weight")}
-                  />
-                </td>
-              </tr>
+
               <tr>
                 <td>
                   <AnimalBoxButton>
